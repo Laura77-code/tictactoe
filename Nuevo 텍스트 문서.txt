@@ -1,0 +1,4 @@
+$projectPath = "C:\Users\laura\Proyectos\flutter\tictactoe"
+
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$projectPath'; flutter run -d chrome"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$projectPath'; flutter run -d edge"
