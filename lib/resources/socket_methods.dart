@@ -57,24 +57,14 @@ class SocketMethods {
   void pointIncreaseListener(BuildContext context) {
     _socketClient?.off('pointIncrease');
 
-    _socketClient?.on('pointIncrease', (playerData) {
-      print('🎯 Point increase for: ${playerData['nickname']}');
-
+    _socketClient?.on('pointIncrease', (data) {
       if (!context.mounted) return;
-
-      var roomDataProvider = Provider.of<RoomDataProvider>(context, listen: false);
-
-      // Actualiza los puntos de los jugadores
-      if (playerData['socketID'] == roomDataProvider.player1.socketID) {
-        roomDataProvider.updatePlayer1(playerData);
-      } else {
-        roomDataProvider.updatePlayer2(playerData);
-      }
-
-      // Limpia el tablero después de actualizar puntos
-      roomDataProvider.resetGame();
-
-      print('Game reset after point increase.');
+      
+      RoomDataProvider provider = Provider.of<RoomDataProvider>(context, listen: false);
+      
+      // Update state using handleWin
+      provider.handleWin(data);
+      provider.resetGame();
     });
   }
 
@@ -158,65 +148,41 @@ class SocketMethods {
   }
 
   void endGameListener(BuildContext context) {
-    _socketClient?.off('endGame');
+    _socketClient?.off('gameWin');
 
-    _socketClient?.on('endGame', (gameData) {
-      print('🏆 Game ended - Winner: ${gameData['winner']['nickname']}');
-
+    _socketClient?.on('gameWin', (data) {
       if (!context.mounted) return;
 
-      // Actualizar puntaje del ganador
       var roomDataProvider = Provider.of<RoomDataProvider>(context, listen: false);
-
-      if (gameData['winner']['socketID'] == roomDataProvider.player1.socketID) {
-        roomDataProvider.updatePlayer1(gameData['winner']);
-      } else {
-        roomDataProvider.updatePlayer2(gameData['winner']);
-      }
-
-      // Incrementar la ronda directamente
-      roomDataProvider.incrementRound();
-
-      // Notificar cambios inmediatamente
-      roomDataProvider.notifyListeners();
-
-      // Mostrar el diálogo del ganador
+      roomDataProvider.handleWin(data['room']);
+      
       showDialog(
         barrierDismissible: false,
         context: context,
         builder: (context) {
-          // Si ya hemos alcanzado el número máximo de rondas, mostrar opciones finales
           if (roomDataProvider.currentRound > roomDataProvider.maxRounds) {
             return AlertDialog(
               title: const Text('¡Juego terminado!'),
-              content: const Text('El juego ha terminado. ¿Qué deseas hacer?'),
+              content: Text('¡${roomDataProvider.player1.points > roomDataProvider.player2.points ? roomDataProvider.player1.nickname : roomDataProvider.player2.nickname} ha ganado!'),
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Cierra el diálogo
-                    roomDataProvider.resetAll(); // Reinicia el juego
+                    Navigator.pop(context);
+                    roomDataProvider.resetAll();
                   },
                   child: const Text('Reiniciar'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).popUntil((route) => route.isFirst); // Regresa al inicio
-                  },
-                  child: const Text('Volver al inicio'),
                 ),
               ],
             );
           }
 
-          // Mostrar el diálogo del ganador y limpiar el tablero después
           return AlertDialog(
             title: const Text('¡Tenemos un ganador!'),
-            content: Text('¡${gameData['winner']['nickname']} ha ganado!'),
+            content: Text('¡${data['room']['turn']['nickname']} ha ganado!'),
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Cierra el diálogo
-                  // Resetea el tablero después de cerrar el diálogo
+                  Navigator.pop(context);
                   roomDataProvider.resetGame();
                 },
                 child: const Text('Siguiente ronda'),
@@ -269,7 +235,6 @@ class SocketMethods {
     _socketClient?.off('startGame');
     _socketClient?.off('errorOccurred');
     _socketClient?.off('tapped');
-    _socketClient?.off('pointIncrease');
-    _socketClient?.off('endGame');
+    _socketClient?.off('gameWin');
   }
 }

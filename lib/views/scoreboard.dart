@@ -18,7 +18,7 @@ class ScoreBoard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Round counter - Made smaller
+          // Round counter
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
@@ -39,11 +39,11 @@ class ScoreBoard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _PlayerScore(
+              _buildPlayerScore(
                 nickname: roomDataProvider.player1.nickname,
                 points: roomDataProvider.player1.points,
                 playerType: 'X',
-                isCurrentTurn: roomDataProvider.roomData['turn']['socketID'] == 
+                isCurrentTurn: roomDataProvider.roomData['turn']?['socketID'] == 
                     roomDataProvider.player1.socketID,
               ),
               const Text(
@@ -53,11 +53,11 @@ class ScoreBoard extends StatelessWidget {
                   fontSize: 16,
                 ),
               ),
-              _PlayerScore(
+              _buildPlayerScore(
                 nickname: roomDataProvider.player2.nickname,
                 points: roomDataProvider.player2.points,
                 playerType: 'O',
-                isCurrentTurn: roomDataProvider.roomData['turn']['socketID'] == 
+                isCurrentTurn: roomDataProvider.roomData['turn']?['socketID'] == 
                     roomDataProvider.player2.socketID,
               ),
             ],
@@ -66,23 +66,13 @@ class ScoreBoard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _PlayerScore extends StatelessWidget {
-  final String nickname;
-  final int points;
-  final String playerType;
-  final bool isCurrentTurn;
-
-  const _PlayerScore({
-    required this.nickname,
-    required this.points,
-    required this.playerType,
-    required this.isCurrentTurn,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPlayerScore({
+    required String nickname,
+    required int points,
+    required String playerType,
+    required bool isCurrentTurn,
+  }) {
     return Column(
       children: [
         Text(

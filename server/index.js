@@ -42,6 +42,10 @@ const roomSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  currentRound: {
+    type: Number,
+    default: 1,
+  },
   players: [{
     nickname: String,
     socketID: String,
@@ -58,8 +62,12 @@ const roomSchema = new mongoose.Schema({
   },
   maxRounds: {
     type: Number,
-    default: 6,
+    default: 3,
   },
+  lastWinner: {
+    socketID: String,
+    round: Number
+  }
 });
 
 const Room = mongoose.model("Room", roomSchema);
@@ -111,26 +119,34 @@ io.on("connection", (socket) => {
       let winnerPlayer = room.players.find(p => p.socketID === winnerSocketId);
       if (!winnerPlayer) return;
   
-      // Update points
-      winnerPlayer.points += 1;
+      // Verificar si ya se actualizó este ganador en esta ronda
+      const lastWinner = room.lastWinner || {};
+      if (lastWinner.socketID === winnerSocketId && lastWinner.round === room.currentRound) {
+        return; // Salir silenciosamente si ya fue procesado
+      }
   
-      // Switch starting player for next round
+      // Increment points
+      winnerPlayer.points = Number(winnerPlayer.points || 0) + 1;
+  
+      // Increment round
+      if (room.currentRound < room.maxRounds) {
+        room.currentRound += 1;
+      }
+  
+      // Guardar información del último ganador
+      room.lastWinner = {
+        socketID: winnerSocketId,
+        round: room.currentRound
+      };
+  
+      // Switch turn
       const otherPlayerIndex = room.players.findIndex(p => p.socketID !== winnerSocketId);
       room.turn = room.players[otherPlayerIndex];
       room.turnIndex = otherPlayerIndex;
   
+      // Save and emit immediately
       room = await room.save();
-  
-      // First emit point increase
-      io.to(roomId).emit("pointIncrease", {
-        player: winnerPlayer,
-        currentRound: winnerPlayer.points + room.players[otherPlayerIndex].points
-      });
-  
-      // Then update room state
-      setTimeout(() => {
-        io.to(roomId).emit("updateRoom", room);
-      }, 500);
+      io.to(roomId).emit("gameWin", { room: room.toObject() });
   
     } catch (e) {
       console.error("Error handling winner:", e);
@@ -222,18 +238,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on('pointIncrease', (data) => {
-    // Actualiza el jugador que ganó
-    if (data['player']['socketID'] == provider.player1.socketID) {
-      provider.updatePlayer1(data['player']);
-    } else {
-      provider.updatePlayer2(data['player']);
-    }
-    
-    // Actualiza la ronda actual con el valor del servidor
-    provider.updateCurrentRound(data['currentRound'] + 1);  // +1 porque el servidor envía los puntos totales
-  });
-
   socket.on("disconnect", async () => {
     try {
       const rooms = await Room.find({ "players.socketID": socket.id });
@@ -268,7 +272,7 @@ const startServer = async () => {
     console.log("✅ MongoDB connected successfully!");
     
     server.listen(port, "0.0.0.0", () => {
-      console.log(`✅ Server started and running on port ${port}`);
+      console.log(` Server started and running on port ${port}`);
       console.log(`📝 Test the server at: http://localhost:${port}`);
       console.log(`🔌 Socket.IO is configured and ready`);
     });
