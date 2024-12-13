@@ -74,121 +74,270 @@ const Room = mongoose.model("Room", roomSchema);
 
 // Manejo de conexiones Socket.IO
 io.on("connection", (socket) => {
-  console.log("✅ New client connected! Socket ID:", socket.id);
+  console.log(`\n🔌 SOCKET CONNECTED: ${socket.id}`);
 
   // Modified createRoom to ensure first turn is set properly
-  socket.on("createRoom", async ({ nickname }) => {
-    console.log("Creating room for:", nickname);
+  socket.on("createRoom", async ({ nickname, maxRounds }) => {
+    console.log('\n🎮 CREATE ROOM REQUEST:');
+    console.log('----------------------------------------');
+    console.log('Nickname:', nickname);
+    console.log('Requested Max Rounds:', maxRounds);
+    
     try {
-      let room = new Room({
-        isJoin: true,
-        players: [],
-        turn: null,
-        turnIndex: 0,
-      });
-  
+      // Create new room
+      let room = new Room();
+      
+      // Ensure maxRounds is a number and at least 1
+      const roundsCount = parseInt(maxRounds) || 3;
+      room.maxRounds = Math.max(1, roundsCount);
+      
+      console.log('Setting max rounds to:', room.maxRounds);
+      
       let player = {
         socketID: socket.id,
         nickname,
-        playerType: "X",
-        points: 0,
+        playerType: 'X',
+        points: 0
       };
-  
+
       room.players.push(player);
-      room.turn = player;  // First player (X) always starts the first game
-      room = await room.save();
+      room.turn = player;
       
-      const roomId = room._id.toString();
-      console.log("Room created with ID:", roomId);
-      console.log("First turn set to:", player.nickname);
-  
-      socket.join(roomId);
-      io.to(roomId).emit("createRoomSuccess", room);
+      await room.save();
+
+      console.log('\n📊 ROOM CREATED:');
+      console.log('Room ID:', room._id);
+      console.log('Max Rounds:', room.maxRounds);
+      console.log('Initial Player:', player.nickname);
+
+      socket.join(room.id);
+      io.to(room.id).emit('createRoomSuccess', room.toObject());
+      
+      console.log('✅ Room creation successful');
+      console.log('----------------------------------------');
     } catch (e) {
-      console.error("Error creating room:", e);
-      socket.emit("errorOccurred", "Error creating room: " + e.message);
+      console.error('\n❌ Error creating room:', e);
+      console.error('Stack:', e.stack);
     }
   });
 
   socket.on("winner", async ({ winnerSocketId, roomId }) => {
     try {
+      console.log('\n🎮 WINNER EVENT RECEIVED:');
+      console.log('----------------------------------------');
+      console.log('Winner Socket ID:', winnerSocketId);
+      console.log('Room ID:', roomId);
+
       let room = await Room.findById(roomId);
-      if (!room) return;
-  
+      if (!room) {
+        console.log('❌ Room not found');
+        return;
+      }
+
       // Find winner
       let winnerPlayer = room.players.find(p => p.socketID === winnerSocketId);
-      if (!winnerPlayer) return;
-  
-      // Verificar si ya se actualizó este ganador en esta ronda
-      const lastWinner = room.lastWinner || {};
-      if (lastWinner.socketID === winnerSocketId && lastWinner.round === room.currentRound) {
-        return; // Salir silenciosamente si ya fue procesado
+      if (!winnerPlayer) {
+        console.log('❌ Winner player not found');
+        return;
       }
-  
-      // Increment points
-      winnerPlayer.points = Number(winnerPlayer.points || 0) + 1;
-  
-      // Increment round
-      if (room.currentRound < room.maxRounds) {
-        room.currentRound += 1;
+
+      // Check if this win has already been processed
+      if (room.lastWinner && room.lastWinner.round === room.currentRound) {
+        console.log('\n⚠️ DUPLICATE WIN DETECTED:');
+        console.log('Current Round:', room.currentRound);
+        console.log('Last Winner Round:', room.lastWinner.round);
+        console.log('Last Winner ID:', room.lastWinner.socketID);
+        return;
       }
-  
-      // Guardar información del último ganador
+
+      // Save winner info
       room.lastWinner = {
         socketID: winnerSocketId,
         round: room.currentRound
       };
-  
-      // Switch turn
-      const otherPlayerIndex = room.players.findIndex(p => p.socketID !== winnerSocketId);
-      room.turn = room.players[otherPlayerIndex];
-      room.turnIndex = otherPlayerIndex;
-  
-      // Save and emit immediately
-      room = await room.save();
-      io.to(roomId).emit("gameWin", { room: room.toObject() });
-  
+
+      // Increment points
+      console.log('\n📈 UPDATING POINTS:');
+      console.log('Winner:', winnerPlayer.nickname);
+      console.log('Previous Points:', winnerPlayer.points);
+      winnerPlayer.points = (winnerPlayer.points || 0) + 1;
+      console.log('New Points:', winnerPlayer.points);
+
+      // Mark for update and save
+      console.log('\n💾 SAVING UPDATES:');
+      room.markModified('players');
+      room.markModified('lastWinner');
+      await room.save();
+      console.log('✅ Initial save complete');
+
+      // Reload room to ensure we have the latest state
+      room = await Room.findById(roomId);
+      console.log('\n🔄 RELOADED ROOM STATE:');
+      console.log('Current Round:', room.currentRound);
+      console.log('Updated Player Points:');
+      room.players.forEach(p => {
+        console.log(`  ${p.nickname} (${p.playerType}): ${p.points} points (${p.socketID})`);
+      });
+
+      // Check if this is the last round
+      const isLastRound = room.currentRound >= room.maxRounds;
+      console.log('\n🔍 ROUND STATUS CHECK:');
+      console.log('Current Round:', room.currentRound);
+      console.log('Max Rounds:', room.maxRounds);
+      console.log('Is Last Round:', isLastRound);
+
+      if (isLastRound) {
+        console.log('\n🏁 PROCESSING FINAL ROUND:');
+        
+        // Create final scores object
+        const finalScores = room.players.map(p => ({
+          nickname: p.nickname,
+          points: p.points,
+          socketID: p.socketID,
+          playerType: p.playerType
+        }));
+
+        console.log('\n📊 VERIFIED FINAL SCORES:');
+        finalScores.forEach(p => {
+          console.log(`  ${p.nickname} (${p.playerType}): ${p.points} points (${p.socketID})`);
+        });
+
+        // First send the win event to update points
+        console.log('\n📡 SENDING GAME WIN EVENT:');
+        io.to(roomId).emit("gameWin", { 
+          room: room.toObject(),
+          winnerSocketId: winnerSocketId,
+          isLastRound: true
+        });
+
+        // Wait a bit to ensure points are updated on client
+        setTimeout(async () => {
+          try {
+            // Reload room one final time
+            room = await Room.findById(roomId);
+            
+            console.log('\n📡 SENDING GAME END EVENT:');
+            console.log('Final Room State:');
+            room.players.forEach(p => {
+              console.log(`  ${p.nickname} (${p.playerType}): ${p.points} points (${p.socketID})`);
+            });
+
+            io.to(roomId).emit("gameEnd", { 
+              room: room.toObject(),
+              winnerSocketId: winnerSocketId,
+              finalScores: finalScores
+            });
+            console.log('✅ Game end event sent');
+          } catch (e) {
+            console.error('\n❌ Error sending game end event:', e);
+          }
+        }, 1000);
+      } else {
+        console.log('\n🎮 PROCESSING MID-GAME WIN:');
+        // For non-final rounds, emit win event and increment round
+        io.to(roomId).emit("gameWin", { 
+          room: room.toObject(),
+          winnerSocketId: winnerSocketId,
+          isLastRound: false
+        });
+        console.log('✅ Game win event sent');
+
+        // Increment round after a delay
+        setTimeout(async () => {
+          try {
+            console.log('\n🔄 INCREMENTING ROUND:');
+            room = await Room.findById(roomId);
+            if (!room) {
+              console.log('❌ Room not found during round increment');
+              return;
+            }
+
+            const oldRound = room.currentRound;
+            room.currentRound += 1;
+            await room.save();
+            
+            console.log(`Round incremented: ${oldRound} -> ${room.currentRound}`);
+            console.log('Player States:');
+            room.players.forEach(p => {
+              console.log(`  ${p.nickname}: ${p.points} points`);
+            });
+
+            io.to(roomId).emit("updateRoom", room.toObject());
+            console.log('✅ Room update event sent');
+          } catch (e) {
+            console.error('\n❌ Error in round increment:', e);
+          }
+        }, 1000);
+      }
+
     } catch (e) {
-      console.error("Error handling winner:", e);
+      console.error("\n❌ ERROR in winner event:", e);
+      console.error('Stack:', e.stack);
     }
-  }); 
- 
-  socket.on("tap", async ({ index, roomId }) => {
+  });
+
+  socket.on('tap', async ({ index, roomId }) => {
+    console.log('\n🎯 TAP EVENT RECEIVED ON SERVER:');
+    console.log('----------------------------------------');
+    console.log(`Room ID: ${roomId}`);
+    console.log(`Index: ${index}`);
+    console.log(`Player Socket: ${socket.id}`);
+
     try {
       let room = await Room.findById(roomId);
       if (!room) {
-        socket.emit("errorOccurred", "Room not found.");
+        console.log('❌ Room not found');
         return;
       }
-  
-      console.log('Tap received:');
-      console.log('Socket ID:', socket.id);
-      console.log('Current turn:', room.turn.socketID);
-  
-      // Verify it's the correct player's turn
-      if (socket.id !== room.turn.socketID) {
-        console.log('Not your turn');
-        return;
+
+      console.log('\nCurrent Room State:');
+      console.log(`Turn Socket: ${room.turn.socketID}`);
+      console.log(`Turn Player: ${room.turn.nickname}`);
+      console.log(`Board: ${JSON.stringify(room.board || [])}`);
+
+      // Verify it's player's turn
+      if (room.turn.socketID === socket.id) {
+        const choice = room.turn.playerType; // X or O
+        
+        // Initialize board if it doesn't exist
+        if (!room.board) {
+          room.board = ['', '', '', '', '', '', '', '', ''];
+        }
+        
+        // Update board
+        room.board[index] = choice;
+        
+        // Switch turns
+        const nextPlayer = room.players.find(p => p.socketID !== socket.id);
+        if (nextPlayer) {
+          room.turn = nextPlayer;
+        }
+
+        // Save changes
+        room.markModified('board');
+        room.markModified('turn');
+        await room.save();
+        
+        console.log('\nUpdated Room State:');
+        console.log(`Board: ${JSON.stringify(room.board)}`);
+        console.log(`Next Turn: ${room.turn.nickname} (${room.turn.socketID})`);
+
+        // Broadcast to all players in the room
+        io.to(roomId).emit('tapped', {
+          index,
+          choice,
+          room: room.toObject()
+        });
+
+        console.log('\n✅ Move processed and broadcast');
+      } else {
+        console.log('❌ Invalid turn - not this player\'s turn');
       }
-  
-      let choice = room.turn.playerType;
-      // Switch to other player's turn
-      const nextTurnIndex = room.turnIndex === 0 ? 1 : 0;
-      room.turn = room.players[nextTurnIndex];
-      room.turnIndex = nextTurnIndex;
-  
-      room = await room.save();
-      console.log('Turn updated:', room.turn.nickname);
-  
-      io.to(roomId).emit("tapped", {
-        index,
-        choice,
-        room,
-      });
-    } catch (e) {
-      console.error("Error handling tap:", e);
-      socket.emit("errorOccurred", "Error handling tap: " + e.message);
+    } catch (error) {
+      console.log('\n❌ Error processing tap:');
+      console.log(error);
     }
+    console.log('----------------------------------------');
   });
 
   socket.on("joinRoom", async ({ nickname, roomId }) => {
@@ -236,6 +385,48 @@ io.on("connection", (socket) => {
       console.error("Error joining room:", e);
       socket.emit("errorOccurred", e.message);
     }
+  });
+
+  socket.on("restart_game", async ({ roomId }) => {
+    console.log('\n🔄 GAME RESTART REQUESTED:');
+    console.log('----------------------------------------');
+    console.log(`Room ID: ${roomId}`);
+    console.log(`Requesting Socket: ${socket.id}`);
+
+    try {
+      let room = await Room.findById(roomId);
+      if (!room) {
+        console.log('❌ Room not found');
+        return;
+      }
+
+      console.log('\nCurrent Room State:');
+      console.log(`Round: ${room.currentRound}`);
+      console.log(`Board: ${JSON.stringify(room.board)}`);
+      console.log(`Players: ${JSON.stringify(room.players.map(p => ({ 
+        nickname: p.nickname, 
+        points: p.points 
+      })))}`);
+
+      // Reset board
+      room.board = ['', '', '', '', '', '', '', '', ''];
+      room.currentRound++;
+      
+      // Reset turn to first player
+      room.turn = room.players[0];
+
+      console.log('\nUpdated Room State:');
+      console.log(`Round: ${room.currentRound}`);
+      console.log(`Board: ${JSON.stringify(room.board)}`);
+      console.log(`Next Turn: ${room.turn.nickname} (${room.turn.socketID})`);
+
+      io.to(roomId).emit('game_restarted', room);
+      console.log('\n✅ Game restart processed and broadcast');
+    } catch (error) {
+      console.log('\n❌ Error restarting game:');
+      console.log(error);
+    }
+    console.log('----------------------------------------');
   });
 
   socket.on("disconnect", async () => {

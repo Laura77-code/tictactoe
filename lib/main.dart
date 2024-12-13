@@ -5,6 +5,7 @@ import '/screens/create_room_screen.dart';
 import '/screens/game_screen.dart';
 import '/screens/join_room_screen.dart';
 import '/screens/main_menu_screen.dart';
+import '/screens/game_over_screen.dart';
 import '/utils/colors.dart';
 
 void main() {
@@ -29,7 +30,14 @@ class MyApp extends StatelessWidget {
           MainMenuScreen.routeName: (context) => const MainMenuScreen(),
           CreateRoomScreen.routeName: (context) => const CreateRoomScreen(),
           JoinRoomScreen.routeName: (context) => const JoinRoomScreen(),
-          GameScreen.routeName: (context) => const GameScreen(),
+          GameScreen.routeName: (context) {
+            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            return GameScreen(isJoin: args?['isJoin'] ?? false);
+          },
+          GameOverScreen.routeName: (context) {
+            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            return GameOverScreen(result: args?['result'] ?? 'Game Over');
+          },
         },
       ),
     );

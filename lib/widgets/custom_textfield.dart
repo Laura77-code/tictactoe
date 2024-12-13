@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import "package:tictactoe/utils/colors.dart";
+import "/utils/colors.dart";
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -15,22 +15,27 @@ class CustomTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue,
-            blurRadius: 5,
-            spreadRadius: 2,
-          )
-        ],
+      decoration: BoxDecoration(
+        color: accentColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white24,
+          width: 1,
+        ),
       ),
       child: TextField(
         readOnly: isReadOnly,
         controller: controller,
+        style: const TextStyle(
+          color: Colors.white,
+        ),
         decoration: InputDecoration(
-          fillColor: bgColor,
-          filled: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          border: InputBorder.none,
           hintText: hintText,
+          hintStyle: const TextStyle(
+            color: Colors.white54,
+          ),
         ),
       ),
     );

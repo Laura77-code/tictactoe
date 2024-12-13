@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '/provider/room_data_provider.dart';
 import '/utils/utils.dart';
+import '/screens/game_over_screen.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 
 class GameMethods {
@@ -9,12 +10,15 @@ class GameMethods {
     RoomDataProvider roomDataProvider =
         Provider.of<RoomDataProvider>(context, listen: false);
 
-    print('Checking winner - Filled boxes: ${roomDataProvider.filledBoxes}');
-    print('Current board: ${roomDataProvider.displayElements}');
+    print('\n🔍 CHECKING WINNER:');
+    print('📊 Filled boxes: ${roomDataProvider.filledBoxes}');
+    print('🎲 Current Round: ${roomDataProvider.currentRound}');
+    print('🎯 Max Rounds: ${roomDataProvider.maxRounds}');
+    print('🎮 Current board: ${roomDataProvider.displayElements}');
 
     // Minimum moves needed for a win is 5
     if (roomDataProvider.filledBoxes < 5) {
-      print('Not enough moves to check winner yet');
+      print('⏳ Not enough moves to check winner yet');
       return;
     }
 
@@ -31,7 +35,9 @@ class GameMethods {
       final c = roomDataProvider.displayElements[combo[2]];
       
       if (a != '' && a == b && b == c) {
-        print('Winner found! Pattern: $combo, Symbol: $a');
+        print('🏆 Winner found!');
+        print('🎯 Winning Pattern: $combo');
+        print('🎮 Winning Symbol: $a');
         _handleWinner(context, socketClient, a, roomDataProvider);
         return;
       }
@@ -39,8 +45,8 @@ class GameMethods {
 
     // Check for draw only if all boxes are filled and no winner
     if (roomDataProvider.filledBoxes == 9) {
-      print('Game is a draw!');
-      showGameDialog(context, '¡Empate!');
+      print('🤝 Game is a draw!');
+      showGameDialog(context, 'Draw!');
       Future.delayed(const Duration(milliseconds: 500), () {
         roomDataProvider.resetGame();
       });
@@ -53,39 +59,49 @@ class GameMethods {
     String winner,
     RoomDataProvider roomDataProvider,
   ) {
-    print('Processing winner: $winner');
+    print('\n🎮 WINNER HANDLING:');
+    print('🎲 Current Round: ${roomDataProvider.currentRound}');
+    print('🎯 Max Rounds: ${roomDataProvider.maxRounds}');
+    print('🏁 Winner Symbol: $winner');
     
-    // Determinar el jugador ganador
+    // Determine winner player
     final winnerPlayer = winner == 'X' ? roomDataProvider.player1 : roomDataProvider.player2;
-    print('Winner nickname: ${winnerPlayer.nickname}');
+    print('👑 Winner Player: ${winnerPlayer.nickname}');
 
-    // Emitir evento de ganador
+    // Emit winner event
     socketClient.emit('winner', {
       'winnerSocketId': winnerPlayer.socketID,
       'roomId': roomDataProvider.roomData['_id'],
     });
 
-    if (context.mounted) {
-      showDialog(
-        barrierDismissible: false,
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('¡Tenemos un ganador!'),
-            content: Text('¡${winnerPlayer.nickname} ha ganado!'), // Aquí agregamos el nombre
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  roomDataProvider.resetGame();
-                },
-                child: const Text('Siguiente ronda'),
-              ),
-            ],
-          );
-        },
-      );
-    }
+    // Update room data with winner info immediately
+    final updatedRoomData = Map<String, dynamic>.from(roomDataProvider.roomData);
+    updatedRoomData['lastWinner'] = {
+      'socketID': winnerPlayer.socketID,
+      'round': roomDataProvider.currentRound
+    };
+    roomDataProvider.updateRoomData(updatedRoomData);
+
+    // Reset game after delay
+    Future.delayed(const Duration(seconds: 1), () {
+      if (!context.mounted) return;
+
+      print('📊 Updated Scores:');
+      print('   ${roomDataProvider.player1.nickname}: ${roomDataProvider.player1.points}');
+      print('   ${roomDataProvider.player2.nickname}: ${roomDataProvider.player2.points}');
+
+      // Check if this is the last round
+      bool isLastRound = roomDataProvider.currentRound >= roomDataProvider.maxRounds;
+      print('🔍 Is this the last round? $isLastRound');
+
+      if (isLastRound) {
+        print('🏁 FINAL ROUND COMPLETED - Waiting for final scores');
+        // Don't navigate here, let socket_methods.dart handle it when it gets final scores
+      } else {
+        print('🔄 Round ${roomDataProvider.currentRound} Complete');
+        roomDataProvider.resetGame();
+      }
+    });
   }
  
 }

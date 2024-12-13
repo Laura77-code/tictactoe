@@ -8,7 +8,7 @@ const roomSchema = new mongoose.Schema({
   },
   maxRounds: {
     type: Number,
-    default: 6,
+    default: 3,
   },
   currentRound: {
     type: Number,
@@ -27,7 +27,11 @@ const roomSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  turn: playerSchema,
+  turn: {
+    type: Object,
+    required: true,
+    default: null,
+  },
   turnIndex: {
     type: Number,
     default: 0,

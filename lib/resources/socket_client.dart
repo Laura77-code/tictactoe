@@ -10,51 +10,67 @@ class SocketClient {
   }
 
   void _connectSocket() {
-    // Primero desconectamos si ya existe una conexión
-    socket?.disconnect();
-    socket?.dispose();
-
-    // Creamos una nueva conexión
-    socket = IO.io(
-      'http://192.168.0.60:3000',  // Tu IP WiFi local
-      {
-        'transports': ['websocket', 'polling'],
-        'autoConnect': false,
-        'forceNew': true,
+    try {
+      print('\n🔄 INITIALIZING SOCKET CONNECTION:');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      print('\n🔄 Creating new socket connection...');
+      socket = IO.io('http://localhost:3000', <String, dynamic>{
+        'transports': ['websocket'],
+        'autoConnect': true,
         'reconnection': true,
         'reconnectionAttempts': 5,
         'reconnectionDelay': 1000,
-        'timeout': 5000,
-      },
-    );
+      });
+      print('✅ Socket instance created');
 
-    // Configuramos los listeners
-    socket?.onConnect((_) {
-      print('✅ Socket Connected');
-      print('🔌 Socket ID: ${socket?.id}');
-    });
+      socket?.onConnect((_) {
+        print('\n✅ SOCKET CONNECTED:');
+        print('🔌 Socket ID: ${socket?.id}');
+        print('📡 Transport: ${socket?.io.engine.transport?.name ?? "unknown"}');
+      });
 
-    socket?.onConnecting((_) {
-      print('🔄 Connecting to socket...');
-    });
+      socket?.onConnectError((err) {
+        print('\n❌ CONNECTION ERROR:');
+        print('Error: $err');
+      });
 
-    socket?.onConnectError((data) {
-      print('❌ Socket Connection Error: $data');
-    });
+      socket?.onDisconnect((_) {
+        print('\n❌ SOCKET DISCONNECTED:');
+        print('Previous Socket ID: ${socket?.id}');
+      });
 
-    socket?.onDisconnect((_) {
-      print('📴 Socket Disconnected');
-    });
+      socket?.onError((err) {
+        print('\n❌ SOCKET ERROR:');
+        print('Error: $err');
+      });
 
-    socket?.onError((err) {
-      print('❌ Socket Error: $err');
-    });
+      socket?.onReconnect((attempt) {
+        print('\n🔄 SOCKET RECONNECTED:');
+        print('Attempt Number: $attempt');
+        print('New Socket ID: ${socket?.id}');
+      });
 
-    // Intentamos conectar
-    try {
+      socket?.onReconnectAttempt((attempt) {
+        print('\n🔄 RECONNECTION ATTEMPT $attempt:');
+        print('Previous Socket ID: ${socket?.id}');
+      });
+
+      socket?.onReconnectError((error) {
+        print('\n❌ RECONNECTION ERROR:');
+        print('Error: $error');
+        print('Connection State: ${socket?.connected}');
+      });
+
+      print('\n🔄 Attempting connection...');
       socket?.connect();
-    } catch (e) {
-      print('❌ Error during connection: $e');
+      print('✅ Connect method called');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    } catch (e, stackTrace) {
+      print('\n❌ ERROR DURING SOCKET SETUP:');
+      print('Error: $e');
+      print('Stack Trace: $stackTrace');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     }
   }
 

@@ -4,16 +4,44 @@ import '/provider/room_data_provider.dart';
 import '/views/scoreboard.dart';
 import '/views/tictactoe_board.dart';
 import '/views/waiting_lobby.dart';
+import '/resources/socket_methods.dart';
 
 class GameScreen extends StatefulWidget {
   static String routeName = '/game';
-  const GameScreen({super.key});
+  final bool isJoin;
+  const GameScreen({
+    Key? key,
+    required this.isJoin,
+  }) : super(key: key);
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
+  final SocketMethods _socketMethods = SocketMethods();
+
+  @override
+  void initState() {
+    super.initState();
+    _socketMethods.updateRoomListener(context);
+    _socketMethods.pointIncreaseListener(context);
+    _socketMethods.endGameListener(context);
+    _socketMethods.tappedListener(context);
+    _socketMethods.gameRestartedListener(context);
+  }
+
+  static GameScreen create(BuildContext context, {bool? isJoin}) {
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    return GameScreen(isJoin: isJoin ?? args?['isJoin'] ?? false);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _socketMethods.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     RoomDataProvider roomDataProvider = Provider.of<RoomDataProvider>(context);

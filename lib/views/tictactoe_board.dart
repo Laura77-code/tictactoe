@@ -23,37 +23,77 @@ class _TicTacToeBoardState extends State<TicTacToeBoard> {
     final currentSocketId = _socketMethods.socketClient.id;
     final currentTurn = roomDataProvider.roomData['turn']['socketID'];
     
-    print('🎮 Tap attempt:');
-    print('🔑 Current Socket ID: $currentSocketId');
-    print('🎯 Current Turn ID: $currentTurn');
-    print('📊 Board State: ${roomDataProvider.displayElements}');
+    print('\n🎯 TAP ATTEMPT ON BOARD:');
+    print('----------------------------------------');
+    print('Index: $index');
+    print('Current Socket: $currentSocketId');
+    print('Turn Socket: $currentTurn');
+    print('Cell Value: "${roomDataProvider.displayElements[index]}"');
+    print('Board State: ${roomDataProvider.displayElements}');
+    print('Is My Turn: ${currentSocketId == currentTurn}');
+    print('Room Data: ${roomDataProvider.roomData}');
     
     if (currentSocketId == currentTurn &&
         roomDataProvider.displayElements[index] == '') {
+      print('✅ Valid tap - sending to server');
       _socketMethods.tapGrid(
         index,
         roomDataProvider.roomData['_id'],
         roomDataProvider.displayElements,
       );
-      
-      // Add debug print for move completion
-      print('✅ Move completed at index: $index');
     } else {
-      print('❌ Invalid move: ${currentSocketId != currentTurn ? "Not your turn" : "Space occupied"}');
+      print('❌ Invalid tap:');
+      print('Wrong turn: ${currentSocketId != currentTurn}');
+      print('Cell occupied: ${roomDataProvider.displayElements[index] != ""}');
     }
+    print('----------------------------------------');
   }
 
-  @override
-  void dispose() {
-    _socketMethods.dispose();
-    super.dispose();
+  Widget _buildSymbol(String symbol) {
+    print('\n🎮 Building symbol: "$symbol"');
+    if (symbol == '') {
+      print('Empty cell - returning empty container');
+      return const SizedBox();
+    }
+
+    print('Creating symbol widget for: $symbol');
+    return Center(
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 200),
+        scale: 1.0,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: symbol == 'O' ? BoxShape.circle : BoxShape.rectangle,
+            border: symbol == 'O' 
+                ? Border.all(color: Colors.red.withOpacity(0.7), width: 3)
+                : null,
+          ),
+          child: symbol == 'X'
+              ? Transform.rotate(
+                  angle: 45 * 3.14159 / 180,
+                  child: Icon(
+                    Icons.add,
+                    size: 40,
+                    color: Colors.blue.withOpacity(0.7),
+                  ),
+                )
+              : null,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     RoomDataProvider roomDataProvider = Provider.of<RoomDataProvider>(context);
-    final currentSocketId = _socketMethods.socketClient.id;
-    final currentTurn = roomDataProvider.roomData['turn']['socketID'];
+    print('\n📱 BUILDING BOARD:');
+    print('----------------------------------------');
+    print('Display Elements: ${roomDataProvider.displayElements}');
+    print('Current Turn: ${roomDataProvider.roomData['turn']?['nickname']}');
+    print('Is My Turn: ${_socketMethods.socketClient.id == roomDataProvider.roomData['turn']?['socketID']}');
+    print('----------------------------------------');
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -61,7 +101,7 @@ class _TicTacToeBoardState extends State<TicTacToeBoard> {
         maxWidth: 500,
       ),
       child: AbsorbPointer(
-        absorbing: currentSocketId != currentTurn,
+        absorbing: _socketMethods.socketClient.id != roomDataProvider.roomData['turn']['socketID'],
         child: GridView.builder(
           itemCount: 9,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -74,36 +114,21 @@ class _TicTacToeBoardState extends State<TicTacToeBoard> {
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: Colors.white24,
+                    width: 0.5,
                   ),
                 ),
-                child: Center(
-                  child: AnimatedSize(
-                    duration: const Duration(milliseconds: 200),
-                    child: Text(
-                      roomDataProvider.displayElements[index] == 'X' ? '×' : 
-                      roomDataProvider.displayElements[index] == 'O' ? '○' : '',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 72, // Reduced from 100
-                        fontFamily: 'monospace',
-                        shadows: [
-                          Shadow(
-                            blurRadius: 20, // Reduced from 40
-                            color: roomDataProvider.displayElements[index] == 'O'
-                                ? Colors.red.withOpacity(0.7)
-                                : Colors.blue.withOpacity(0.7),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                child: _buildSymbol(roomDataProvider.displayElements[index]),
               ),
             );
           },
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _socketMethods.dispose();
+    super.dispose();
   }
 }
