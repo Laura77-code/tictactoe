@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require("express");
 const http = require("http");
 const mongoose = require("mongoose");
@@ -8,7 +10,7 @@ const cors = require("cors");
 const app = express();
 const server = http.createServer(app);
 const port = process.env.PORT || 3000;
-const DB = "mongodb+srv://laura:1234@cluster0.hbpzu.mongodb.net/tictactoe";
+const DB = process.env.MONGODB_URI;
 
 // Configurar middleware
 app.use(cors({
