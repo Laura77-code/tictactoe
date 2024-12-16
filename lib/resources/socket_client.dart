@@ -31,7 +31,8 @@ class SocketClient {
       _connectionTimer?.cancel();
       
       print('\n🔄 Creating new socket connection...');
-      final serverUrl = 'http://$SERVER_IP:$SERVER_PORT';
+      //final serverUrl = 'http://$SERVER_IP:$SERVER_PORT';
+      final serverUrl = 'https://tictactoe-production-ce1c.up.railway.app/';
       print('🔌 Connecting to: $serverUrl');
       
       socket = IO.io(serverUrl, <String, dynamic>{
