@@ -46,10 +46,17 @@ class GameMethods {
     // Check for draw only if all boxes are filled and no winner
     if (roomDataProvider.filledBoxes == 9) {
       print('🤝 Game is a draw!');
-      showGameDialog(context, 'Draw!');
-      Future.delayed(const Duration(milliseconds: 500), () {
-        roomDataProvider.resetGame();
+      print('Current Round: ${roomDataProvider.currentRound}');
+      print('Max Rounds: ${roomDataProvider.maxRounds}');
+      print('Emitting draw event to server...');
+      
+      socketClient.emit('draw', {
+        'roomId': roomDataProvider.roomData['_id'],
+        'currentRound': roomDataProvider.currentRound,
+        'board': roomDataProvider.displayElements,
       });
+      
+      print('✅ Draw event emitted');
     }
   }
 

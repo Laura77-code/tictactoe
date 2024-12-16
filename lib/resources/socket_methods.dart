@@ -209,6 +209,48 @@ class SocketMethods {
   void endGameListener(BuildContext context) {
     _socketClient.off('gameWin');
     _socketClient.off('gameEnd');
+    _socketClient.off('draw');
+
+    // Listener for draws
+    _socketClient.on('draw', (data) {
+      if (!context.mounted) return;
+      
+      print('\n🤝 DRAW EVENT RECEIVED:');
+      print('----------------------------------------');
+      print('Current Round: ${data['currentRound']}');
+      
+      var roomDataProvider = Provider.of<RoomDataProvider>(context, listen: false);
+      
+      print('\n📊 CURRENT STATE BEFORE DRAW UPDATE:');
+      print('Round: ${roomDataProvider.currentRound}/${roomDataProvider.maxRounds}');
+      print('P1: ${roomDataProvider.player1.nickname} - ${roomDataProvider.player1.points}pts');
+      print('P2: ${roomDataProvider.player2.nickname} - ${roomDataProvider.player2.points}pts');
+      
+      // Update room data
+      if (data['room'] != null) {
+        roomDataProvider.updateRoomData(Map<String, dynamic>.from(data['room']));
+      }
+      
+      // Check if this is the last round
+      bool isLastRound = roomDataProvider.currentRound >= roomDataProvider.maxRounds;
+      print('\n🔍 ROUND STATUS:');
+      print('Current Round: ${roomDataProvider.currentRound}');
+      print('Max Rounds: ${roomDataProvider.maxRounds}');
+      print('Is Last Round: $isLastRound');
+      
+      if (isLastRound) {
+        print('\n🏁 FINAL ROUND DRAWN:');
+        print('Waiting for game end event...');
+      } else {
+        print('\n🔄 Round Complete - Resetting game board');
+        roomDataProvider.resetGame();
+        
+        // Emit restart event to ensure all clients are in sync
+        _socketClient.emit('restart_game', {
+          'roomId': roomDataProvider.roomData['_id'],
+        });
+      }
+    });
 
     // Listener for normal wins
     _socketClient.on('gameWin', (data) {
@@ -438,5 +480,6 @@ class SocketMethods {
     _socketClient.off('gameWin');
     _socketClient.off('gameEnd');
     _socketClient.off('gameRestarted');
+    _socketClient.off('draw');
   }
 }
