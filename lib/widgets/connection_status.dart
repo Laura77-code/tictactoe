@@ -11,6 +11,7 @@ class ConnectionStatusWidget extends StatefulWidget {
 
 class _ConnectionStatusWidgetState extends State<ConnectionStatusWidget> {
   late bool isConnected;
+
   Socket? socket;
 
   @override

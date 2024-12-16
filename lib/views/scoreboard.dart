@@ -65,14 +65,18 @@ class _ScoreBoardState extends State<ScoreBoard> with SingleTickerProviderStateM
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.white12,
+                color: roomDataProvider.currentRound >= roomDataProvider.maxRounds 
+                    ? Colors.amber.withOpacity(0.3) 
+                    : Colors.white12,
                 width: 1,
               ),
             ),
             child: Text(
               'Round ${roomDataProvider.currentRound} of ${roomDataProvider.maxRounds}',
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: roomDataProvider.currentRound >= roomDataProvider.maxRounds 
+                    ? Colors.amber 
+                    : Colors.white70,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),

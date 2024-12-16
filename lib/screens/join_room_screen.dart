@@ -4,6 +4,7 @@ import '/responsive/responsive.dart';
 import '/widgets/custom_button.dart';
 import '/widgets/custom_textfield.dart';
 import '/utils/colors.dart';
+import '/screens/qr_scanner_screen.dart';
 
 class JoinRoomScreen extends StatefulWidget {
   static String routeName = '/join-room';
@@ -31,6 +32,15 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
     super.dispose();
     _gameIdController.dispose();
     _nameController.dispose();
+  }
+
+  void _scanQR() async {
+    final result = await Navigator.pushNamed(context, QRScannerScreen.routeName);
+    if (result != null && mounted) {
+      setState(() {
+        _gameIdController.text = result.toString();
+      });
+    }
   }
 
   @override
@@ -75,6 +85,10 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                     CustomTextField(
                       controller: _gameIdController,
                       hintText: 'Enter Game ID',
+                      suffix: IconButton(
+                        icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                        onPressed: _scanQR,
+                      ),
                     ),
                   ],
                 ),

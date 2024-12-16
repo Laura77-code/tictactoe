@@ -476,7 +476,7 @@ const startServer = async () => {
     
     // Escuchar en todas las interfaces
     server.listen(port, "0.0.0.0", () => {
-      const HOST = "192.168.0.60"; // Tu IP Wi-Fi
+      const HOST = "0.0.0.60"; // Tu IP Wi-Fi
       console.log(`Server started and running on http://${HOST}:${port}`);
       console.log(`📝 Test the server at: http://${HOST}:${port}`);
       console.log(`🔌 Socket.IO is configured and ready`);

@@ -6,6 +6,7 @@ import '/screens/game_screen.dart';
 import '/screens/join_room_screen.dart';
 import '/screens/main_menu_screen.dart';
 import '/screens/game_over_screen.dart';
+import '/screens/qr_scanner_screen.dart';
 import '/utils/colors.dart';
 
 void main() {
@@ -39,6 +40,7 @@ class MyApp extends StatelessWidget {
             final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
             return GameOverScreen(result: args?['result'] ?? 'Game Over');
           },
+          QRScannerScreen.routeName: (context) => const QRScannerScreen(),
         },
       ),
     );

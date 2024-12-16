@@ -5,11 +5,13 @@ class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final bool isReadOnly;
+  final Widget? suffix;
   const CustomTextField({
     super.key,
     required this.controller,
     required this.hintText,
     this.isReadOnly = false,
+    this.suffix,
   });
 
   @override
@@ -36,6 +38,7 @@ class CustomTextField extends StatelessWidget {
           hintStyle: const TextStyle(
             color: Colors.white54,
           ),
+          suffixIcon: suffix,
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import '/provider/room_data_provider.dart';
 import '/widgets/custom_textfield.dart';
 import '/utils/colors.dart';
+import '/widgets/qr_code_widget.dart';
 
 class WaitingLobby extends StatefulWidget {
   const WaitingLobby({super.key});
@@ -138,6 +139,8 @@ class _WaitingLobbyState extends State<WaitingLobby> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+                QRCodeWidget(roomId: roomIdController.text),
               ],
             ),
           ),
