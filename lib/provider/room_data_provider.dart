@@ -88,43 +88,28 @@ class RoomDataProvider with ChangeNotifier {
         var oldP1Points = _player1.points;
         var oldP2Points = _player2.points;
         
-        print('Player 1 before update:');
-        print('  ▸ Nickname: ${_player1.nickname}');
-        print('  ▸ Points: ${_player1.points}');
-        print('  ▸ Socket ID: ${_player1.socketID}');
-        
-        print('Player 2 before update:');
-        print('  ▸ Nickname: ${_player2.nickname}');
-        print('  ▸ Points: ${_player2.points}');
-        print('  ▸ Socket ID: ${_player2.socketID}');
-        
         _player1 = Player.fromMap(data['players'][0]);
         _player2 = Player.fromMap(data['players'][1]);
         
         print('\nPlayers after update:');
         print('P1: ${_player1.points} (${_player1.points - oldP1Points > 0 ? "+1" : "0"})');
         print('P2: ${_player2.points} (${_player2.points - oldP2Points > 0 ? "+1" : "0"})');
-      } else {
-        print('⚠️ Invalid players data received');
-        print('Data received: $data');
       }
 
-      // Update round
+      // Update round - Asegurarse de que el incremento sea correcto
       if (data['currentRound'] != null) {
         print('\n🎲 ROUND UPDATE:');
         print('Current round: $_currentRound');
         _currentRound = data['currentRound'];
         print('New round: $_currentRound');
         print('Rounds remaining: ${_maxRounds - _currentRound}');
-      } else {
-        print('⚠️ No round data received');
       }
 
-      // Notify changes
-      print('\n🔄 Notifying listeners');
-      notifyListeners();
-
       // Check for game over
+      if (_currentRound > _maxRounds) {
+        _currentRound = _maxRounds; // Asegurarse de no exceder el máximo
+      }
+      
       if (_currentRound >= _maxRounds) {
         _isGameOver = true;
         print('\n🏁 GAME OVER:');
@@ -134,11 +119,12 @@ class RoomDataProvider with ChangeNotifier {
         print('  ▸ Winner: ${_player1.points > _player2.points ? _player1.nickname : _player2.nickname}');
       }
 
+      notifyListeners();
+
     } catch (e, stackTrace) {
       print('\n❌ ERROR handling win:');
       print('Error: $e');
       print('Stack trace: $stackTrace');
-      print('Received data: $data');
     }
     print('----------------------------------------');
   }
