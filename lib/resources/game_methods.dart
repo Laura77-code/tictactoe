@@ -79,6 +79,7 @@ class GameMethods {
     socketClient.emit('winner', {
       'winnerSocketId': winnerPlayer.socketID,
       'roomId': roomDataProvider.roomData['_id'],
+      'currentRound': roomDataProvider.currentRound,
     });
 
     // Update room data with winner info immediately
@@ -103,7 +104,6 @@ class GameMethods {
 
       if (isLastRound) {
         print('🏁 FINAL ROUND COMPLETED - Waiting for final scores');
-        // Don't navigate here, let socket_methods.dart handle it when it gets final scores
       } else {
         print('🔄 Round ${roomDataProvider.currentRound} Complete');
         roomDataProvider.resetGame();

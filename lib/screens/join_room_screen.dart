@@ -40,6 +40,19 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
       setState(() {
         _gameIdController.text = result.toString();
       });
+      if (_nameController.text.isNotEmpty) {
+        _socketMethods.joinRoom(
+          _nameController.text,
+          result.toString(),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter your nickname first'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

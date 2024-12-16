@@ -19,16 +19,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan QR Code'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
             icon: ValueListenableBuilder(
@@ -50,10 +48,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           for (final barcode in barcodes) {
             if (barcode.rawValue != null) {
               Navigator.pop(context, barcode.rawValue);
+              return;
             }
           }
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 } 
