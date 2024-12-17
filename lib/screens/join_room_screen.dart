@@ -28,6 +28,10 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
 
   void _setupListeners() {
     print('\n🎯 Setting up join room listeners');
+    _socketMethods.socketClient.off('joinRoomSuccess');
+    _socketMethods.socketClient.off('updateRoom');
+    _socketMethods.socketClient.off('errorOccurred');
+    
     _socketMethods.joinRoomSuccessListener(context);
     _socketMethods.errorOccuredListener(context);
     _socketMethods.updateRoomListener(context);
@@ -44,50 +48,58 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
       return;
     }
 
+    if (_isJoining) {
+      print('⚠️ Already processing, please wait...');
+      return;
+    }
+
+    setState(() => _isJoining = true);
+    print('\n🔄 STARTING QR SCAN PROCESS:');
+    print('----------------------------------------');
+    print('Current nickname: ${_nameController.text}');
+
     try {
-      final result = await Navigator.pushNamed(context, QRScannerScreen.routeName);
+      final result = await Navigator.pushNamed(
+        context, 
+        QRScannerScreen.routeName,
+      );
+      
       if (result != null && mounted) {
-        print('\n📱 QR SCAN RESULT:');
-        print('----------------------------------------');
-        print('Scanned code: $result');
-        print('Nickname: ${_nameController.text}');
-        
+        print('📝 Updating room ID field: $result');
         setState(() {
           _gameIdController.text = result.toString();
-          _isJoining = true;
         });
-        
-        print('✅ Game ID field updated');
-        print('🔄 Attempting to join room...');
-        
-        if (mounted) {
-          _socketMethods.joinRoom(
-            _nameController.text,
-            result.toString(),
-          );
-          print('✅ Join room request sent');
-        } else {
-          print('❌ Context not mounted, skipping join request');
-        }
-        print('----------------------------------------');
+        print('✅ Room ID field updated successfully');
+      } else {
+        print('ℹ️ No QR code scanned or invalid result');
       }
     } catch (e) {
-      print('❌ Error in QR scan:');
-      print(e);
+      print('❌ Error during QR scan: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error scanning QR code: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isJoining = false);
+        print('✅ QR scan process completed');
+      }
+      print('----------------------------------------');
     }
   }
 
   @override
   void dispose() {
     print('🗑️ Disposing JoinRoomScreen');
+    // Limpiar los listeners antes de disponer
+    _socketMethods.socketClient.off('joinRoomSuccess');
+    _socketMethods.socketClient.off('updateRoom');
+    _socketMethods.socketClient.off('errorOccurred');
+    
     _gameIdController.dispose();
     _nameController.dispose();
     super.dispose();

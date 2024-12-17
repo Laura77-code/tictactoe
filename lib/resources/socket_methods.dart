@@ -97,54 +97,17 @@ class SocketMethods {
     socketClient.off('updateRoom');
     
     socketClient.on('updateRoom', (room) {
-      print('\n🔄 ROOM UPDATE EVENT RECEIVED:');
-      print('----------------------------------------');
-      print('Room ID: ${room['_id']}');
-      print('Round: ${room['currentRound']}');
-      print('Players: ${room['players']?.length ?? 0}');
-      print('Is Join: ${room['isJoin']}');
-      print('Socket ID: ${socketClient.id}');
-      
-      try {
-        if (!context.mounted) {
-          print('❌ Context not mounted, skipping update');
-          return;
-        }
-
-        // Usar Future.microtask para asegurar que el estado se actualice después del frame actual
-        Future.microtask(() {
-          if (!context.mounted) {
-            print('❌ Context lost during microtask, aborting update');
-            return;
-          }
-
-          print('\n🔄 Processing room update...');
-          try {
-            final roomDataProvider = Provider.of<RoomDataProvider>(context, listen: false);
-            final roomData = Map<String, dynamic>.from(room);
-            
-            print('Current state before update:');
-            print('  Players: ${roomDataProvider.player1.nickname} vs ${roomDataProvider.player2.nickname}');
-            print('  Round: ${roomDataProvider.currentRound}/${roomDataProvider.maxRounds}');
-            
-            roomDataProvider.updateRoomData(roomData);
-            
-            print('\nState after update:');
-            print('  Players: ${roomDataProvider.player1.nickname} vs ${roomDataProvider.player2.nickname}');
-            print('  Round: ${roomDataProvider.currentRound}/${roomDataProvider.maxRounds}');
-            print('✅ Room update successful');
-          } catch (e, stackTrace) {
-            print('\n❌ Error updating room:');
-            print('Error: $e');
-            print('Stack trace: $stackTrace');
-          }
-        });
-      } catch (e, stackTrace) {
-        print('\n❌ Error in room update:');
-        print('Error: $e');
-        print('Stack trace: $stackTrace');
+      if (!context.mounted) {
+        print('❌ Context not mounted in updateRoom');
+        return;
       }
-      print('----------------------------------------');
+
+      try {
+        Provider.of<RoomDataProvider>(context, listen: false).updateRoomData(room);
+        print('✅ Room updated successfully');
+      } catch (e) {
+        print('❌ Error updating room: $e');
+      }
     });
     print('✅ updateRoom listener setup complete');
   }
@@ -177,56 +140,46 @@ class SocketMethods {
     print('\n🎮 Setting up joinRoomSuccess listener');
     socketClient.off('joinRoomSuccess');
     
-    socketClient.on('joinRoomSuccess', (room) {
-      print('\n���� JOIN ROOM SUCCESS EVENT RECEIVED:');
+    socketClient.on('joinRoomSuccess', (room) async {
+      print('\n🎮 JOIN ROOM SUCCESS EVENT RECEIVED:');
       print('----------------------------------------');
       print('Room ID: ${room['_id']}');
       print('Players: ${room['players']?.length ?? 0}');
-      print('Current Round: ${room['currentRound']}');
       print('Is Join: ${room['isJoin']}');
-      print('Socket ID: ${socketClient.id}');
       
       try {
+        // 1. Actualizar el estado
+        print('🔄 Updating room data...');
         if (!context.mounted) {
-          print('❌ Context not mounted, skipping room update');
+          print('❌ Context not mounted, aborting update');
+          return;
+        }
+        Provider.of<RoomDataProvider>(context, listen: false).updateRoomData(room);
+        print('✅ Room data updated');
+
+        // 2. Navegar al juego
+        print('🔄 Navigating to game screen...');
+        if (!context.mounted) {
+          print('❌ Context lost before navigation');
           return;
         }
 
-        // Actualizar el estado inmediatamente
-        print('\n🔄 Updating room state...');
-        try {
-          final roomDataProvider = Provider.of<RoomDataProvider>(context, listen: false);
-          roomDataProvider.updateRoomData(room);
-          print('✅ Room data updated successfully');
-          print('Current state:');
-          print('  Players: ${roomDataProvider.player1.nickname} vs ${roomDataProvider.player2.nickname}');
-          print('  Round: ${roomDataProvider.currentRound}/${roomDataProvider.maxRounds}');
-
-          // Navegar inmediatamente después de actualizar el estado
-          print('\n🔄 Preparing navigation...');
-          if (context.mounted) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              GameScreen.routeName,
-              (route) => false,
-              arguments: {'isJoin': room['isJoin'] ?? false}
-            );
-            print('✅ Navigation successful');
-          } else {
-            print('❌ Context lost before navigation');
-          }
-        } catch (e, stackTrace) {
-          print('\n❌ Error updating room state:');
-          print('Error: $e');
-          print('Stack trace: $stackTrace');
-        }
-      } catch (e, stackTrace) {
-        print('\n❌ Error in join room success:');
+        await Navigator.pushNamedAndRemoveUntil(
+          context,
+          GameScreen.routeName,
+          (route) => false,
+          arguments: {'isJoin': room['isJoin'] ?? false}
+        );
+        print('✅ Navigation completed');
+        
+      } catch (e, stack) {
+        print('❌ Error in joinRoomSuccess:');
         print('Error: $e');
-        print('Stack trace: $stackTrace');
+        print('Stack trace: $stack');
       }
       print('----------------------------------------');
     });
+    print('✅ joinRoomSuccess listener setup complete');
   }
 
   void errorOccuredListener(BuildContext context) {
