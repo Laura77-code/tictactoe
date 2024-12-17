@@ -23,10 +23,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan QR Code'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
         actions: [
           IconButton(
             icon: ValueListenableBuilder(
@@ -47,6 +43,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           final List<Barcode> barcodes = capture.barcodes;
           for (final barcode in barcodes) {
             if (barcode.rawValue != null) {
+              print('🎯 QR Code detected: ${barcode.rawValue}');
               Navigator.pop(context, barcode.rawValue);
               return;
             }

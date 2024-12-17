@@ -18,42 +18,79 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
   final TextEditingController _gameIdController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final SocketMethods _socketMethods = SocketMethods();
+  bool _isJoining = false;
 
   @override
   void initState() {
     super.initState();
+    _setupListeners();
+  }
+
+  void _setupListeners() {
+    print('\n🎯 Setting up join room listeners');
     _socketMethods.joinRoomSuccessListener(context);
     _socketMethods.errorOccuredListener(context);
     _socketMethods.updateRoomListener(context);
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-    _gameIdController.dispose();
-    _nameController.dispose();
-  }
-
   void _scanQR() async {
-    final result = await Navigator.pushNamed(context, QRScannerScreen.routeName);
-    if (result != null && mounted) {
-      setState(() {
-        _gameIdController.text = result.toString();
-      });
-      if (_nameController.text.isNotEmpty) {
-        _socketMethods.joinRoom(
-          _nameController.text,
-          result.toString(),
-        );
-      } else {
+    if (_nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your nickname first'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final result = await Navigator.pushNamed(context, QRScannerScreen.routeName);
+      if (result != null && mounted) {
+        print('\n📱 QR SCAN RESULT:');
+        print('----------------------------------------');
+        print('Scanned code: $result');
+        print('Nickname: ${_nameController.text}');
+        
+        setState(() {
+          _gameIdController.text = result.toString();
+          _isJoining = true;
+        });
+        
+        print('✅ Game ID field updated');
+        print('🔄 Attempting to join room...');
+        
+        if (mounted) {
+          _socketMethods.joinRoom(
+            _nameController.text,
+            result.toString(),
+          );
+          print('✅ Join room request sent');
+        } else {
+          print('❌ Context not mounted, skipping join request');
+        }
+        print('----------------------------------------');
+      }
+    } catch (e) {
+      print('❌ Error in QR scan:');
+      print(e);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter your nickname first'),
+          SnackBar(
+            content: Text('Error scanning QR code: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
+  }
+
+  @override
+  void dispose() {
+    print('🗑️ Disposing JoinRoomScreen');
+    _gameIdController.dispose();
+    _nameController.dispose();
+    super.dispose();
   }
 
   @override
