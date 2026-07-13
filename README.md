@@ -1,120 +1,193 @@
-# TicTacToe Multiplayer 
+# TicTacToe Multiplayer
 
-Backend server for the TicTacToe multiplayer game built with Node.js, Express, Socket.IO, and MongoDB.
+A real-time multiplayer TicTacToe game built with Flutter and Node.js. Create or join rooms, share them via QR code, and play multiple rounds with live score tracking.
 
-## Prerequisites
+## Demo
 
-- Node.js (v14 or higher)
-- MongoDB (local installation or MongoDB Atlas account)
-- npm (Node Package Manager)
+**Video demo:** [Watch on YouTube](https://youtu.be/uqtY5cOIHM4)
 
-## Installation
+[![Demo Video](https://img.youtube.com/vi/uqtY5cOIHM4/0.jpg)](https://youtu.be/uqtY5cOIHM4)
 
-1. Clone the repository or copy the server folder
-```bash
-git clone <repository-url>
-cd server
+## Key Features
+
+![Key Features](demoImg/Key%20Features.png)
+
+- Real-time multiplayer gaming with Socket.IO
+- Room-based gameplay (create or join)
+- QR code room sharing and scanning
+- Score tracking across multiple rounds
+- Responsive design for different screen sizes
+
+## Technical Stack
+
+![Technical Stack](demoImg/Technical%20Stack.png)
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Flutter / Dart |
+| Backend | Node.js with Express |
+| Database | MongoDB |
+| Real-time | Socket.IO |
+| Deployment | Railway (Docker) |
+| Extras | QR scanning/generation, Provider, Docker |
+
+## Project Architecture
+
+![Project Architecture](demoImg/Project%20Arquitecture.png)
+
+```
+tictactoe/
+├── lib/                    # Flutter client
+│   ├── main.dart           # Entry point
+│   ├── screens/            # UI screens
+│   ├── provider/           # State management
+│   ├── resources/          # Socket & game logic
+│   ├── utils/              # Helper functions
+│   └── widgets/            # Reusable UI components
+└── server/                 # Node.js backend
+    ├── index.js            # Main server file
+    ├── models/             # Database schemas
+    └── Dockerfile          # Container configuration
 ```
 
-2. Install dependencies
+## Technical Implementation
+
+### 1. Socket.IO Connection Setup
+
+![Socket.IO Connection Setup](demoImg/Technical%20Implementation%201.png)
+
+The Flutter client connects to the Node.js server using WebSocket transport. The server listens for incoming connections and handles game events.
+
+### 2. Room Management & 3. State Management
+
+![Room Management and State Management](demoImg/Technical%20Implementation%202%20-%203.png)
+
+- **Room creation:** The server creates rooms, assigns player types (X/O), and persists them in MongoDB.
+- **State management:** `RoomDataProvider` (Provider) keeps room data, rounds, and scores in sync across the UI.
+
+### 4. Game Logic
+
+![Game Logic Implementation](demoImg/Technical%20Implementation%204.png)
+
+Win conditions are checked on the client and winner events are emitted to the server to update scores and trigger the next round.
+
+## Server Deployment
+
+![Server Deployment](demoImg/Server%20Deployment.png)
+
+- **Railway:** Containerized with Docker, Git-integrated auto-deploy, and environment variable management.
+- **Android APK:** Debug and release builds with network security configuration for local/server connections.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Flutter 3.5.1+ / Dart 3.5.1+
+- Node.js 18.x
+- MongoDB (local or Atlas)
+- Android SDK (minSdk 21, targetSdk 34)
+
+### Flutter Client
+
+1. Install dependencies:
+
 ```bash
+flutter pub get
+```
+
+2. Update the server IP in `lib/resources/socket_client.dart` to match your backend address.
+
+3. Run the app:
+
+```bash
+flutter run
+```
+
+**Required permissions:** Internet, Camera (for QR scanning)
+
+**Tested on:** Samsung Galaxy S21 (Android 14), Pixel 7 Emulator (Android 13)
+
+### Backend Server
+
+1. Navigate to the server folder and install dependencies:
+
+```bash
+cd server
 npm install
 ```
 
-3. Create a `.env` file in the server directory with your MongoDB connection string:
+2. Create a `.env` file:
+
 ```
 MONGODB_URI=mongodb://localhost:27017/tictactoe
 PORT=3000
 ```
 
-Note: If you're using MongoDB Atlas, replace the connection string with your Atlas URI.
+3. Start MongoDB (if running locally):
 
-## Running the Server
-
-1. Start MongoDB service (if using local MongoDB)
 ```bash
 # Windows
 net start MongoDB
 
-# Linux/MacOS
+# Linux/macOS
 sudo service mongod start
 ```
 
-2. Start the server
+4. Start the server:
+
 ```bash
-# Development mode (with auto-reload)
+# Development (auto-reload)
 npm run dev
 
-# Production mode
+# Production
 npm start
 ```
 
-The server will start on `http://localhost:3000`
+The server runs at `http://localhost:3000`.
 
-## API Endpoints
+## Socket.IO Events
 
-The server uses Socket.IO for real-time communication. Here are the main events:
-
-- `connection`: Socket connection event
-- `createRoom`: Create a new game room
-- `joinRoom`: Join an existing room
-- `tap`: Handle player moves
-- `gameRestarted`: Handle game restart
+| Event | Description |
+|-------|-------------|
+| `connection` | Client connects to the server |
+| `createRoom` | Host creates a new game room |
+| `joinRoom` | Guest joins an existing room |
+| `tap` | Player makes a move on the board |
+| `gameRestarted` | Starts a new round after a win/draw |
 
 ## Environment Variables
 
-- `PORT`: Server port (default: 3000)
-- `MONGODB_URI`: MongoDB connection string
-
-## Project Structure
-
-```
-server/
-├── models/
-│   ├── room.js     # Room model schema
-│   └── player.js   # Player model schema
-├── index.js        # Main server file
-├── package.json    # Dependencies and scripts
-└── .env           # Environment variables (create this)
-```
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Server port (default: 3000) |
+| `MONGODB_URI` | MongoDB connection string |
 
 ## Troubleshooting
 
-1. MongoDB Connection Issues:
-   - Ensure MongoDB service is running
-   - Check connection string in `.env`
-   - Verify MongoDB port (default: 27017)
+**MongoDB connection issues**
+- Ensure MongoDB is running
+- Verify the connection string in `.env`
+- Default port: 27017
 
-2. Socket Connection Issues:
-   - Check if server is running
-   - Verify port is not in use
-   - Check client connection settings
+**Socket connection issues**
+- Confirm the server is running
+- Check that `SERVER_IP` in `socket_client.dart` matches your machine's IP
+- Ensure the port is not blocked by a firewall
 
-## Common Commands
+**Check MongoDB status**
 
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Start production server
-npm start
-
-# Check MongoDB status (Windows)
+# Windows
 sc query MongoDB
 
-# Check MongoDB status (Linux/MacOS)
+# Linux/macOS
 sudo systemctl status mongod
 ```
 
-## Required Dependencies
+## Dependencies
 
-The server uses these main packages:
-- `express`: Web framework
-- `socket.io`: Real-time communication
-- `mongoose`: MongoDB object modeling
-- `cors`: Cross-origin resource sharing
+**Flutter:** `provider`, `socket_io_client`, `qr_flutter`, `mobile_scanner`, `share_plus`
 
-All dependencies are listed in `package.json` and will be installed with `npm install`. 
+**Server:** `express`, `socket.io`, `mongoose`, `cors`, `dotenv`

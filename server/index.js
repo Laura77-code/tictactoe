@@ -80,46 +80,35 @@ io.on("connection", (socket) => {
 
   // Modified createRoom to ensure first turn is set properly
   socket.on("createRoom", async ({ nickname, maxRounds }) => {
-    console.log('\n🎮 CREATE ROOM REQUEST:');
-    console.log('----------------------------------------');
-    console.log('Nickname:', nickname);
-    console.log('Requested Max Rounds:', maxRounds);
-    
     try {
-      // Create new room
-      let room = new Room();
-      
-      // Ensure maxRounds is a number and at least 1
-      const roundsCount = parseInt(maxRounds) || 3;
-      room.maxRounds = Math.max(1, roundsCount);
-      
-      console.log('Setting max rounds to:', room.maxRounds);
-      
-      let player = {
-        socketID: socket.id,
-        nickname,
-        playerType: 'X',
-        points: 0
-      };
+      // Crear nuevo documento de sala en MongoDB
+      const room = new Room({
+        // MongoDB generará automáticamente un _id único
+        occupancy: 2,
+        maxRounds: maxRounds,
+        currentRound: 1,
+        players: [{
+          nickname,
+          socketID: socket.id,
+          points: 0,
+          playerType: 'X'
+        }],
+      });
 
-      room.players.push(player);
-      room.turn = player;
+      // Guardar la sala en la base de datos
+      const savedRoom = await room.save();
       
-      await room.save();
+      // El roomId será el _id generado por MongoDB
+      const roomId = savedRoom._id.toString();
 
-      console.log('\n📊 ROOM CREATED:');
-      console.log('Room ID:', room._id);
-      console.log('Max Rounds:', room.maxRounds);
-      console.log('Initial Player:', player.nickname);
+      // Unir al socket a la sala
+      socket.join(roomId);
 
-      socket.join(room.id);
-      io.to(room.id).emit('createRoomSuccess', room.toObject());
-      
-      console.log('✅ Room creation successful');
-      console.log('----------------------------------------');
+      // Emitir evento de éxito con los datos de la sala
+      io.to(roomId).emit('createRoomSuccess', savedRoom);
     } catch (e) {
-      console.error('\n❌ Error creating room:', e);
-      console.error('Stack:', e.stack);
+      console.error('Error creating room:', e);
+      socket.emit('errorOccurred', 'Error creating room');
     }
   });
 
